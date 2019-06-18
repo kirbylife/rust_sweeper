@@ -5,17 +5,64 @@ license: GPLv2
 
 
 extern crate ncurses;
+extern crate rand;
 
 use ncurses::*;
+use rand::Rng;
+use std::collections::LinkedList;
 
 const ROWS: usize = 15;
 const COLUMNS: usize = 10;
 const MINES: i32 = ((ROWS * COLUMNS) as i32 * 20 / 100);
 
+fn get_arround(pivot: [usize; 2]) -> LinkedList<[usize; 2]> {
+    // Returns a list with the coordinates around the pivot ignoring the ones that come off the board
+    let mut list: LinkedList<[usize; 2]> = LinkedList::new();
+    for r in (pivot[0] as i32 - 1)..(pivot[0] as i32 + 2) {
+        for c in (pivot[1] as i32- 1)..(pivot[1] as i32 + 2) {
+            if r >= 0 && r < ROWS as i32 && c >= 0 && c < COLUMNS as i32 {
+                list.push_front([r as usize,c as usize]);
+            }
+        }
+    }
+    list
+}
+
+fn gen_game(mut counter: i32) -> [[i8; COLUMNS]; ROWS] {
+    // returns a matrix with a board already with the mines placed at random
+    // -1: box with mine
+    // 0-8: box without mine
+    let mut rng = rand::thread_rng();
+    let mut game = [[0 as i8; COLUMNS]; ROWS];
+    while counter != 0 {
+        let rnd_row = rng.gen_range(0, ROWS);
+        let rnd_column = rng.gen_range(0, COLUMNS);
+        if game[rnd_row][rnd_column] == 0 {
+            game[rnd_row][rnd_column] = -1;
+            counter -= 1;
+        }
+    }
+    for (i, row) in game.clone().iter().enumerate() {
+        for (j, item) in row.iter().enumerate() {
+            if item != &-1 {
+                let mut counter: i8 = 0;
+                for x in get_arround([i, j]).iter() {
+                    if game[x[0] as usize][x[1] as usize] == -1 {
+                        counter += 1;
+                    }
+                }
+                game[i][j] = counter;
+            }
+        }
+    }
+    game
+}
+
 
 fn main() {
     let mut running = true;
     let mut board = [['-'; COLUMNS]; ROWS];
+    let game = gen_game(MINES);
     let mut pivot = [0 as usize; 2];
     initscr();
     raw();
@@ -43,6 +90,7 @@ fn main() {
             };
             addstr("\n");
         }
+        addstr(format!("{} - {}\n", pivot[0], pivot[1]).as_ref());
         let ch = getch();
         if ch == KEY_UP {
             // Go up
@@ -68,7 +116,16 @@ fn main() {
                 pivot[1] += 1;
             }
         }
-         else if ch == 'q' as i32 || ch == 'Q' as i32 {
+        else if ch == 'f' as i32 || ch == 'F' as i32 {
+            // Flag a box with possibly a mine
+            if board[pivot[0]][pivot[1]] == '#' {
+                board[pivot[0]][pivot[1]] = '-';
+            }
+            else if board[pivot[0]][pivot[1]] == '-' {
+                board[pivot[0]][pivot[1]] = '#';
+            }
+        }
+        else if ch == 'q' as i32 || ch == 'Q' as i32 {
             // if you press q, the game ends
             break;
         }

@@ -1,5 +1,5 @@
 [package]
-name = "RustSweeper"
+name = "rust_sweeper"
 version = "0.1.0"
 authors = ["kirbylife <gabriel13m@gmail.com>"]
 edition = "2018"

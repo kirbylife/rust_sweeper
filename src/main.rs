@@ -58,6 +58,20 @@ fn gen_game(mut counter: i32) -> [[i8; COLUMNS]; ROWS] {
     game
 }
 
+fn reveal(pivot: [usize; 2], mut board: [[char; COLUMNS]; ROWS], game: [[i8; COLUMNS]; ROWS]) -> [[char; COLUMNS]; ROWS] {
+    // recursively, reveals the zones of the board without mines
+    let [row, column] = pivot;
+    if game[row][column] != 0 && game[row][column] != -1 {
+        board[row][column] = format!("{}", game[row][column]).chars().next().unwrap();
+    }
+    if game[row][column] == 0 && board[row][column] == '-' {
+        board[row][column] = format!("{}", game[row][column]).chars().next().unwrap();
+        for tmp_pivot in get_arround(pivot) {
+            board = reveal(tmp_pivot, board, game);
+        }
+    }
+    board
+}
 
 fn main() {
     let mut running = true;
@@ -125,6 +139,50 @@ fn main() {
                 board[pivot[0]][pivot[1]] = '#';
             }
         }
+        else if ch == ' ' as i32 {
+            // Reveal a box
+            if board[pivot[0]][pivot[1]] == '-' && game[pivot[0]][pivot[1]] == 0 {
+                // If a box with a 0 is revealed, the entire area around it is revealed
+                board = reveal(pivot, board, game);
+            }
+            else if board[pivot[0]][pivot[1]] == '-' && game[pivot[0]][pivot[1]] != -1 {
+                // If a box with a value other than 0 and -1 is revealed, only that box is revealed
+                board[pivot[0]][pivot[1]] = format!("{}", game[pivot[0]][pivot[1]]).chars().next().unwrap();
+            }
+            else if board[pivot[0]][pivot[1]] != '#' && game[pivot[0]][pivot[1]] != 0 && game[pivot[0]][pivot[1]] != -1 {
+                // If space is pressed in a box already revealed, its neighboring cells are revealed
+                let mut count = 0;
+                for [r, c] in get_arround(pivot) {
+                    if board[r][c] == '#' {
+                        count += 1;
+                    }
+                }
+                if count == game[pivot[0]][pivot[1]] {
+                    // It's only relieved if the number of boxes around it has already been flagged
+                    for [r, c] in get_arround(pivot) {
+                        if  board[r][c] != '#' && game[r][c] == -1 {
+                            // If a flag was in an incorrect box, the game is over
+                            print!("Game Over");
+                            running = false;
+                            break;
+                        }
+                        else if board[r][c] != '#' && game[r][c] != 0 {
+                            board[r][c] = format!("{}", game[r][c]).chars().next().unwrap();
+                        }
+                        else if game[r][c] == 0 {
+                            // If a box around it had a 0, that whole area is revealed
+                            board = reveal([r, c], board, game);
+                        }
+                    }
+                } 
+            }
+            else if board[pivot[0]][pivot[1]] == '-' && game[pivot[0]][pivot[1]] == -1 {
+                // If a box with a mine is revealed, the game is over
+                print!("Game over");
+                break;
+            }
+        }
+
         else if ch == 'q' as i32 || ch == 'Q' as i32 {
             // if you press q, the game ends
             break;

@@ -73,6 +73,19 @@ fn reveal(pivot: [usize; 2], mut board: [[char; COLUMNS]; ROWS], game: [[i8; COL
     board
 }
 
+fn check_revealed(board: [[char; COLUMNS]; ROWS], game: [[i8; COLUMNS]; ROWS]) -> i32 {
+    // Return the number of boxes already revealed
+    let mut count: i32 = 0;
+    for (i, row) in board.iter().enumerate() {
+        for (j, item) in row.iter().enumerate() {
+            if game[i][j] != -1 && item != &'#' && item != &'-' {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
 fn main() {
     let mut running = true;
     let mut board = [['-'; COLUMNS]; ROWS];
@@ -86,6 +99,11 @@ fn main() {
 
     while running == true {
         clear();
+        let revealed = check_revealed(board, game);
+        if revealed == ((COLUMNS * ROWS) as i32 - MINES)  {
+            print!("You win");
+            break;
+        }
         for (i, row) in board.iter().enumerate() {
             for (j, item) in row.iter().enumerate() {
                 if pivot[0] == i && pivot[1] == j {
